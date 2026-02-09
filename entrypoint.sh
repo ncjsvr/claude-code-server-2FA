@@ -266,9 +266,19 @@ echo "Starting $APP_NAME as $(whoami)..."
 echo "════════════════════════════════════════════════════════════════════════"
 echo ""
 
-# Start code-server in background (uses default config: 127.0.0.1:8080, no auth override needed)
-echo "→ Starting code-server on 127.0.0.1:8080 (internal, default config)..."
+# Force code-server config to use port 8080 on localhost
+# (without this, code-server picks up the PORT env var set by platforms like Coolify)
+mkdir -p "$XDG_CONFIG_HOME/code-server" 2>/dev/null || true
+cat > "$XDG_CONFIG_HOME/code-server/config.yaml" << EOF
+bind-addr: 127.0.0.1:8080
+auth: none
+cert: false
+EOF
+
+# Start code-server in background on internal port
+echo "→ Starting code-server on 127.0.0.1:8080 (internal)..."
 dumb-init /usr/bin/code-server \
+    --bind-addr 127.0.0.1:8080 \
     --auth none \
     --app-name "$APP_NAME" \
     --welcome-text "$WELCOME_TEXT" \
