@@ -2,12 +2,12 @@
 set -e
 
 # ============================================================================
-# VSCode Cloud IDE - Railway Entrypoint
-# Handles permission fix and optional user switching
+# Claude Code Server - Entrypoint
+# Handles permission fix, optional user switching, and service startup
 # ============================================================================
 
 echo "╔══════════════════════════════════════════════════════════════════════╗"
-echo "║           VSCode Cloud IDE - Claude Code & Node.js Ready            ║"
+echo "║          Claude Code Server - VS Code + AI in the Browser           ║"
 echo "╚══════════════════════════════════════════════════════════════════════╝"
 echo ""
 
@@ -71,7 +71,7 @@ if [ "$(id -u)" = "0" ]; then
         cat >> "$PROFILE_FILE" << 'PROFILE'
 
 # ============================================================================
-# VSCode Cloud IDE - PATH Configuration
+# Claude Code Server - PATH Configuration
 # ============================================================================
 export PATH="$HOME/.local/bin:$HOME/.npm-global/bin:$HOME/.local/node/bin:$HOME/.claude/local:$PATH"
 
@@ -151,14 +151,15 @@ if [ ! -f "$FIRST_RUN_MARKER" ]; then
 
     if [ ! -f "$HOME/workspace/README.md" ]; then
         cat > "$HOME/workspace/README.md" << 'WELCOME'
-# Welcome to VSCode Cloud IDE
+# Welcome to Claude Code Server
 
 Your cloud development environment is ready!
 
 ## Features
 
 - **Claude Code CLI** - Pre-installed and ready to use
-- **Node.js 20 LTS** - Pre-installed and ready to use
+- **TOTP 2FA** - Secured with authenticator app
+- **Node.js 22** - Pre-installed and ready to use
 - **Persistent Extensions** - Install once, keep forever
 - **Full Terminal** - npm, git, and more
 
@@ -176,15 +177,6 @@ claude
 ```
 
 You'll need to authenticate with your Anthropic API key on first use.
-
-## Configuration
-
-Set these environment variables in Railway:
-
-- `RUN_AS_USER=clauder` - Run as non-root user (recommended for Claude)
-- `RUN_AS_USER=root` - Stay as root
-
-Happy coding! 🚀
 WELCOME
     fi
 
@@ -247,10 +239,24 @@ if [ -d "$HOME/entrypoint.d" ]; then
 fi
 
 # ============================================================================
-# START CODE-SERVER
+# SESSION SECRET (auto-generate and persist if not set)
 # ============================================================================
 
-# Branding customization
+if [ -z "${SESSION_SECRET:-}" ]; then
+    SESSION_SECRET_FILE="$XDG_CONFIG_HOME/claude-2fa/session-secret"
+    mkdir -p "$(dirname "$SESSION_SECRET_FILE")" 2>/dev/null || true
+    if [ ! -f "$SESSION_SECRET_FILE" ]; then
+        openssl rand -hex 32 > "$SESSION_SECRET_FILE"
+        chmod 600 "$SESSION_SECRET_FILE"
+        echo "→ Generated new session secret"
+    fi
+    export SESSION_SECRET=$(cat "$SESSION_SECRET_FILE")
+fi
+
+# ============================================================================
+# START SERVICES
+# ============================================================================
+
 APP_NAME="${APP_NAME:-Claude Code Server}"
 WELCOME_TEXT="${WELCOME_TEXT:-Welcome to Claude Code Server}"
 
@@ -260,8 +266,22 @@ echo "Starting $APP_NAME as $(whoami)..."
 echo "════════════════════════════════════════════════════════════════════════"
 echo ""
 
-exec dumb-init /usr/bin/code-server \
-    --bind-addr 0.0.0.0:8080 \
+# Start code-server in background on internal port (no auth - proxy handles it)
+echo "→ Starting code-server on 127.0.0.1:8081 (internal, no auth)..."
+dumb-init /usr/bin/code-server \
+    --bind-addr 127.0.0.1:8081 \
+    --auth none \
     --app-name "$APP_NAME" \
     --welcome-text "$WELCOME_TEXT" \
-    "$CLAUDER_HOME/workspace"
+    "$CLAUDER_HOME/workspace" &
+
+sleep 2
+
+# Start 2FA auth proxy in foreground on external port
+echo "→ Starting 2FA auth proxy on 0.0.0.0:8080..."
+export AUTH_PROXY_PORT=8080
+export CODE_SERVER_PORT=8081
+export CODE_SERVER_HOST=127.0.0.1
+export APP_NAME
+
+exec node /usr/lib/auth-proxy/server.js

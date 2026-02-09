@@ -23,3 +23,6 @@ test/test-results
 # Quilt's internal data.
 /.pc
 /patches/*.diff~
+
+# Auth proxy dependencies (installed during Docker build)
+auth-proxy/node_modules

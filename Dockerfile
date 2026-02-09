@@ -1,6 +1,5 @@
 # ============================================================================
-# Claude Code Server - Browser-based VS Code with AI Coding Assistants
-# https://github.com/sphinxcode/claude-code-server
+# Claude Code Server - Browser-based VS Code with AI & TOTP 2FA
 # ============================================================================
 
 FROM codercom/code-server:4.108.0
@@ -10,7 +9,6 @@ USER root
 # ============================================================================
 # SYSTEM DEPENDENCIES
 # Install gosu, Node.js 22, Python/uv, and essential tools
-# Cache bust: 2026-01-30-v6
 # ============================================================================
 
 RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
@@ -86,13 +84,21 @@ RUN mkdir -p \
     /home/clauder/.local/bin \
     /home/clauder/.local/node \
     /home/clauder/.claude \
+    /home/clauder/.config/claude-2fa \
     /home/clauder/entrypoint.d \
     /home/clauder/workspace \
     && chown -R 1000:1000 /home/clauder
 
-# Copy our custom entrypoint (replaces base image's entrypoint)
-COPY railway-entrypoint.sh /usr/bin/railway-entrypoint.sh
-RUN chmod +x /usr/bin/railway-entrypoint.sh
+# ============================================================================
+# 2FA AUTH PROXY
+# ============================================================================
+
+COPY auth-proxy/ /usr/lib/auth-proxy/
+RUN cd /usr/lib/auth-proxy && npm ci --production
+
+# Copy entrypoint script
+COPY entrypoint.sh /usr/bin/entrypoint.sh
+RUN chmod +x /usr/bin/entrypoint.sh
 
 # ============================================================================
 # CLAUDE CODE CLI INSTALLATION
@@ -110,7 +116,7 @@ RUN npm install -g @anthropic-ai/claude-code \
 WORKDIR /home/clauder/workspace
 EXPOSE 8080
 
-# Use our entrypoint which calls code-server directly
-ENTRYPOINT ["/usr/bin/railway-entrypoint.sh"]
+# Entrypoint starts code-server (background) + 2FA proxy (foreground)
+ENTRYPOINT ["/usr/bin/entrypoint.sh"]
 
 
