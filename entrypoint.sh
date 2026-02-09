@@ -180,6 +180,41 @@ You'll need to authenticate with your Anthropic API key on first use.
 WELCOME
     fi
 
+    # Copy pre-bundled extensions from image to volume
+    if [ -d /opt/default-extensions ] && [ "$(ls -A /opt/default-extensions 2>/dev/null)" ]; then
+        echo "→ Installing pre-bundled extensions..."
+        mkdir -p "$XDG_DATA_HOME/code-server/extensions" 2>/dev/null || true
+        cp -rn /opt/default-extensions/* "$XDG_DATA_HOME/code-server/extensions/" 2>/dev/null || true
+        echo "  ✓ Extensions installed"
+    fi
+
+    # Default VS Code settings (Claude Code as chat provider)
+    SETTINGS_DIR="$XDG_DATA_HOME/code-server/User"
+    SETTINGS_FILE="$SETTINGS_DIR/settings.json"
+    if [ ! -f "$SETTINGS_FILE" ]; then
+        mkdir -p "$SETTINGS_DIR" 2>/dev/null || true
+        cat > "$SETTINGS_FILE" << 'SETTINGS'
+{
+    "workbench.colorTheme": "Default Dark+",
+    "chat.agent.enabled": true
+}
+SETTINGS
+        echo "  ✓ Default settings configured"
+    fi
+
+    # Default Claude Code model to Opus
+    CLAUDE_SETTINGS_DIR="$HOME/.claude"
+    CLAUDE_SETTINGS_FILE="$CLAUDE_SETTINGS_DIR/settings.json"
+    if [ ! -f "$CLAUDE_SETTINGS_FILE" ]; then
+        mkdir -p "$CLAUDE_SETTINGS_DIR" 2>/dev/null || true
+        cat > "$CLAUDE_SETTINGS_FILE" << 'SETTINGS'
+{
+    "model": "opus"
+}
+SETTINGS
+        echo "  ✓ Claude Code default model set to Opus"
+    fi
+
     touch "$FIRST_RUN_MARKER" 2>/dev/null || true
     echo "  ✓ Initialization complete"
 fi
@@ -203,6 +238,9 @@ echo "  → npm: $(npm --version 2>/dev/null || echo 'not found')"
 
 # git
 echo "  → git: $(git --version 2>/dev/null | cut -d' ' -f3 || echo 'not found')"
+
+# GitHub CLI
+echo "  → gh: $(gh --version 2>/dev/null | head -1 | cut -d' ' -f3 || echo 'not found')"
 
 # Claude Code - show source
 if [ -x "$CLAUDER_HOME/.local/bin/claude" ]; then

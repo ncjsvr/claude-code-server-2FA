@@ -61,6 +61,13 @@ function isEnrolled() {
 function generateNewSecret() {
   const secret = authenticator.generateSecret();
   const otpauthUrl = authenticator.keyuri('clauder', APP_NAME, secret);
+  console.log('');
+  console.log('════════════════════════════════════════════════════════════════');
+  console.log('New TOTP secret generated. To persist across deploys without a');
+  console.log('volume, set this environment variable:');
+  console.log(`  TOTP_SECRET=${secret}`);
+  console.log('════════════════════════════════════════════════════════════════');
+  console.log('');
   return { secret, otpauthUrl };
 }
 
@@ -69,6 +76,28 @@ function verifyTOTP(token, secret) {
     return authenticator.check(token, secret);
   } catch {
     return false;
+  }
+}
+
+// ============================================================================
+// Seed TOTP secret from environment variable (for no-volume deploys)
+// ============================================================================
+
+const TOTP_SECRET_ENV = process.env.TOTP_SECRET;
+if (TOTP_SECRET_ENV) {
+  const existing = loadSecret();
+  if (!existing || existing.secret !== TOTP_SECRET_ENV) {
+    const otpauthUrl = authenticator.keyuri('clauder', APP_NAME, TOTP_SECRET_ENV);
+    saveSecret({
+      secret: TOTP_SECRET_ENV,
+      otpauthUrl,
+      enrolled: true,
+      enrolledAt: new Date().toISOString(),
+      issuer: APP_NAME,
+      accountName: 'clauder',
+      source: 'environment',
+    });
+    console.log('TOTP secret loaded from TOTP_SECRET env var (auto-enrolled)');
   }
 }
 
