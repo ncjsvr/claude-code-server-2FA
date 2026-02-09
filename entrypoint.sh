@@ -196,7 +196,10 @@ WELCOME
         cat > "$SETTINGS_FILE" << 'SETTINGS'
 {
     "workbench.colorTheme": "Default Dark+",
-    "chat.agent.enabled": true
+    "chat.agent.enabled": true,
+    "workbench.secondarySideBar.defaultVisibility": "visible",
+    "claudeCode.preferredLocation": "sidebar",
+    "claudeCode.useTerminal": false
 }
 SETTINGS
         echo "  ✓ Default settings configured"
