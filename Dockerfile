@@ -114,7 +114,7 @@ RUN npm install -g @anthropic-ai/claude-code \
 # ============================================================================
 
 WORKDIR /home/clauder/workspace
-EXPOSE 8080
+EXPOSE 3000
 
 # Entrypoint starts code-server (background) + 2FA proxy (foreground)
 ENTRYPOINT ["/usr/bin/entrypoint.sh"]

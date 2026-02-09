@@ -266,10 +266,9 @@ echo "Starting $APP_NAME as $(whoami)..."
 echo "════════════════════════════════════════════════════════════════════════"
 echo ""
 
-# Start code-server in background on internal port (no auth - proxy handles it)
-echo "→ Starting code-server on 127.0.0.1:8081 (internal, no auth)..."
+# Start code-server in background (uses default config: 127.0.0.1:8080, no auth override needed)
+echo "→ Starting code-server on 127.0.0.1:8080 (internal, default config)..."
 dumb-init /usr/bin/code-server \
-    --bind-addr 127.0.0.1:8081 \
     --auth none \
     --app-name "$APP_NAME" \
     --welcome-text "$WELCOME_TEXT" \
@@ -278,9 +277,9 @@ dumb-init /usr/bin/code-server \
 sleep 2
 
 # Start 2FA auth proxy in foreground on external port
-echo "→ Starting 2FA auth proxy on 0.0.0.0:8080..."
-export AUTH_PROXY_PORT=8080
-export CODE_SERVER_PORT=8081
+echo "→ Starting 2FA auth proxy on 0.0.0.0:3000..."
+export AUTH_PROXY_PORT=3000
+export CODE_SERVER_PORT=8080
 export CODE_SERVER_HOST=127.0.0.1
 export APP_NAME
 

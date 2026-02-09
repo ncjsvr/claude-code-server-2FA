@@ -1,5 +1,7 @@
 # Claude Code Server (2FA)
 
+> Based on [sphinxcode/claude-code-server](https://github.com/sphinxcode/claude-code-server), adapted for TOTP 2FA (using Claude Opus 4.6).
+
 **Browser-based VS Code with Claude Code CLI and TOTP two-factor authentication.**
 
 Deploy a full VS Code development environment in the cloud with Claude Code CLI ready to go. Secured with TOTP 2FA (Google Authenticator, Authy, etc.) instead of a password. Access it from any browser, on any device.
@@ -24,7 +26,7 @@ Deploy a full VS Code development environment in the cloud with Claude Code CLI 
 ```bash
 docker build -t claude-code-server .
 docker run -d \
-  -p 8080:8080 \
+  -p 3000:3000 \
   -v claude-data:/home/clauder \
   -e ANTHROPIC_API_KEY=your-key-here \
   --name claude-code \
@@ -38,7 +40,7 @@ services:
   claude-code:
     build: .
     ports:
-      - "8080:8080"
+      - "3000:3000"
     volumes:
       - claude-data:/home/clauder
     environment:
@@ -49,9 +51,21 @@ volumes:
   claude-data:
 ```
 
+### Coolify / PaaS Deployment
+
+This works with any Docker-based platform (Coolify, CapRover, Dokku, etc.):
+
+1. Point the service at your Git repo
+2. Set build method to **Dockerfile**
+3. Set the exposed port to **3000**
+4. Add a volume mount for `/home/clauder` (optional but recommended for persistence)
+5. Add any environment variables you need (e.g. `ANTHROPIC_API_KEY`)
+6. Deploy -- the container handles everything else
+
+
 ### First Login & 2FA Setup
 
-1. Open `http://localhost:8080` in your browser
+1. Open `http://localhost:3000` in your browser
 2. On first visit, you'll see a **QR code** -- scan it with your authenticator app (Google Authenticator, Authy, 1Password, etc.)
 3. Enter the 6-digit code from your authenticator to **confirm enrollment**
 4. You're in! VS Code opens in the browser
@@ -107,10 +121,10 @@ If you don't set an API key, Claude will prompt you to authenticate via OAuth on
 ## Architecture & Security
 
 ```
-Internet (port 8080) --> 2FA Auth Proxy (Express) --> code-server (localhost:8081, no auth)
+Internet (port 3000) --> 2FA Auth Proxy (Express) --> code-server (localhost:8080, no auth)
 ```
 
-Code-server runs with `--auth none` but is bound to `127.0.0.1:8081` -- it is **not reachable from outside the container**. Only the auth proxy listens on the external port (8080). All traffic must pass through the proxy, which enforces TOTP authentication before forwarding requests.
+Code-server runs with `--auth none` on its default port `127.0.0.1:8080` -- it is **not reachable from outside the container**. Only the auth proxy listens on the external port (3000). All traffic must pass through the proxy, which enforces TOTP authentication before forwarding requests.
 
 ### How TOTP Authentication Works
 
