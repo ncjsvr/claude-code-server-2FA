@@ -275,6 +275,10 @@ auth: none
 cert: false
 EOF
 
+# Clear PORT env var - PaaS platforms (Coolify, etc.) set this and code-server reads it,
+# overriding both config file and CLI flags
+unset PORT
+
 # Start code-server in background on internal port
 echo "→ Starting code-server on 127.0.0.1:8080 (internal)..."
 dumb-init /usr/bin/code-server \
