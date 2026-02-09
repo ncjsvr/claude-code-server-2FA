@@ -329,7 +329,18 @@ dumb-init /usr/bin/code-server \
     --welcome-text "$WELCOME_TEXT" \
     "$CLAUDER_HOME/workspace" &
 
-sleep 2
+# Wait for code-server to be truly ready (not just accepting connections)
+echo "→ Waiting for code-server to be ready..."
+for i in $(seq 1 30); do
+  if curl -sf http://127.0.0.1:8080/healthz > /dev/null 2>&1; then
+    echo "  ✓ code-server ready (${i}s)"
+    break
+  fi
+  if [ "$i" = "30" ]; then
+    echo "  ⚠ code-server not ready after 30s, starting proxy anyway"
+  fi
+  sleep 1
+done
 
 # Start 2FA auth proxy in foreground on external port
 echo "→ Starting 2FA auth proxy on 0.0.0.0:3000..."
