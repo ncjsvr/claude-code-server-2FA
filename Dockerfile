@@ -94,7 +94,7 @@ RUN mkdir -p \
 # ============================================================================
 
 COPY auth-proxy/ /usr/lib/auth-proxy/
-RUN cd /usr/lib/auth-proxy && npm ci --production
+RUN cd /usr/lib/auth-proxy && npm ci --omit=dev
 
 # Copy entrypoint script
 COPY entrypoint.sh /usr/bin/entrypoint.sh
